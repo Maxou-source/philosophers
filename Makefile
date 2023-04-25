@@ -6,18 +6,18 @@
 #    By: mparisse <mparisse@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/12/18 10:32:25 by mparisse          #+#    #+#              #
-#    Updated: 2023/04/14 20:59:23 by mparisse         ###   ########.fr        #
+#    Updated: 2023/04/25 20:25:33 by mparisse         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = philo
 
-SRCS = main.c
+SRCS = main.c tmp_utils.c
 
 
 OBJS = ${SRCS:.c=.o}
 
-CC = cc 
+CC = cc -g3
 
 CFLAGS = -Wall -Werror -Wextra
 
