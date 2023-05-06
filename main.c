@@ -6,7 +6,7 @@
 /*   By: mparisse <mparisse@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/04/13 20:13:48 by mparisse          #+#    #+#             */
-/*   Updated: 2023/04/25 21:05:24 by mparisse         ###   ########.fr       */
+/*   Updated: 2023/05/06 05:03:13 by mparisse         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,99 +52,163 @@ int	parsing(char **av)
 	return (1);
 }
 
-pthread_mutex_t	lock;
-int				counter;
+void	prints(t_philo *philo, const char *state)
+{
+	pthread_mutex_lock(&philo->infos->mut_print);
+	if (is_dead(philo))
+	{
+		pthread_mutex_unlock(&philo->infos->mut_print);
+		return;
+	}
+	printf("%08ld %d %s\n", gettime() - philo->infos->time_stamp, philo->index, state);
+	pthread_mutex_unlock(&philo->infos->mut_print);
+}
 
 void	*thread(void *data)
 {
 	t_philo	*philo;
+	
+	philo = data;
+	
+	if (philo->index % 2 == 0)
+		ft_usleep(philo->infos->time_to_eat * 0.25);
 
-	philo = (void *)data;
-	pthread_mutex_lock(&philo->random_mutex);
-	printf("philo %d created\n", philo->index);
-	pthread_mutex_unlock(&philo->random_mutex);
-	return (philo);
-}
-
-int	init_forks_mutex(t_philo *philo)
-{
-	int	i;
-
-	i = 0;
-	philo->forks = malloc(sizeof(pthread_mutex_t) * philo->nbs_of_philos);
-	while (i < philo->nbs_of_philos)
+	while (!is_dead(philo))
 	{
-		pthread_mutex_init(&philo->forks[i], NULL);
-		pthread_mutex_init(&philo->random_mutex, NULL);
-		i++;
+		if (philo->infos->nbs_of_philos % 2 && philo->count)
+			ft_usleep(philo->infos->time_to_die * 0.2);
+		if (philo->index % 2 == 0)
+		{
+			pthread_mutex_lock(philo->left);
+			prints(philo, "has taken a fork");
+			pthread_mutex_lock(philo->right);
+			prints(philo, "has taken a fork");
+		}
+		else
+		{
+			pthread_mutex_lock(philo->right);
+			prints(philo, "has taken a fork");
+			pthread_mutex_lock(philo->left);
+			prints(philo, "has taken a fork");
+		}
+		prints(philo, "is eating");
+		pthread_mutex_lock(&philo->mut_eating_time);
+		philo->eating_time = gettime();
+		pthread_mutex_unlock(&philo->mut_eating_time);
+		ft_usleep(philo->infos->time_to_eat);
+		philo->count++;
+		if (philo->count == philo->infos->nb_meal)
+		{
+			pthread_mutex_lock(&philo->infos->mut_finish);
+			philo->infos->finish_philo++;
+			pthread_mutex_unlock(&philo->infos->mut_finish);
+			return NULL;
+		}
+		pthread_mutex_unlock(philo->left);
+		pthread_mutex_unlock(philo->right);
+		prints(philo, "is sleeping");
+		ft_usleep(philo->infos->time_to_sleep);
+		prints(philo, "is thinking");	
 	}
-	return (1);
+	return (NULL);
 }
 
-int	init_philo(char **av, t_philo *philo, t_info *info)
+int	init_philo(int ac, char **av, t_info *info)
 {
-	int	i;
+	int		i;
 
-	i = 1;
+	(void) ac;
 	info->nbs_of_philos = ft_atoi(av[1]);
 	info->time_to_die = ft_atoi(av[2]);
 	info->time_to_eat = ft_atoi(av[3]);
 	info->time_to_sleep = ft_atoi(av[4]);
-		i++;
-	philo->threads_philo = malloc(sizeof(pthread_t) * info->nbs_of_philos);
-	if (!philo->threads_philo)
-		exit(0);
+	if (ac == 6)
+		info->nb_meal = ft_atoi(av[5]);
+	info->philo = calloc(sizeof(t_philo), info->nbs_of_philos);
+	if (!info->philo)
+		exit(EXIT_FAILURE); // pas le droit oupsiii 
+	pthread_mutex_init(&info->mut_print, NULL);
+	pthread_mutex_init(&info->mut_dead, NULL);
+	pthread_mutex_init(&info->mut_finish, NULL);
+	info->time_stamp = gettime();
 	i = 0;
-	init_forks_mutex(philo);
-	// pthread_mutex_init(&lock, NULL);
 	while (i < info->nbs_of_philos)
 	{
-		// philo[i]-index = i;
+		info->philo[i].index = i;
+		info->philo[i].infos = info;
+		info->philo[i].eating_time = info->time_stamp;
+		pthread_mutex_init(&info->philo[i].forks, NULL);
+		pthread_mutex_init(&info->philo[i].mut_eating_time, NULL);
+		info->philo[i].left = &info->philo[i].forks;
+		if (i != info->nbs_of_philos - 1)
+			info->philo[i].right = &info->philo[i + 1].forks;
+		else
+			info->philo[i].right = &info->philo[0].forks;
 		i++;
 	}
 	i = 0;
 	while (i < info->nbs_of_philos)
 	{
-		pthread_create(&philo->threads_philo[i], NULL, &thread, (void *)philo);
+		pthread_create(&info->philo[i].threads_philo, NULL, &thread, (void *)&info->philo[i]);
 		i++;
 	}
-	i = 0;
-	while (i < info->nbs_of_philos)
-	{
-		pthread_join(philo->threads_philo[i], 0);
-		i++;
-	}
-	pthread_mutex_destroy(&lock);
-	free(philo->threads_philo);
-	i = 0;
 	return (1);
+}
+
+void check_finish(t_info *info)
+{
+	long eating_time;
+	int	i;
+
+	while (1)
+	{
+		i = 0;
+		while (i < info->nbs_of_philos)
+		{
+			pthread_mutex_lock(&info->philo[i].		mut_eating_time);
+			eating_time = gettime() - info->philo[i].eating_time;
+			pthread_mutex_unlock(&info->philo[i].mut_eating_time);
+			if (eating_time >= info->time_to_die)
+			{
+				pthread_mutex_lock(&info->mut_dead);
+				info->dead = 1;
+				pthread_mutex_unlock(&info->mut_dead);
+				pthread_mutex_lock(&info->mut_print);
+				printf("%08ld %d has died\n", gettime() - info->time_stamp, i);
+				pthread_mutex_unlock(&info->mut_print);
+				return ;
+			}
+			i++;
+		}
+		pthread_mutex_lock(&info->mut_finish);
+		if (info->finish_philo == info->nbs_of_philos)
+		{
+			pthread_mutex_unlock(&info->mut_finish);
+			return ;
+		}
+			pthread_mutex_unlock(&info->mut_finish);
+		usleep(100);
+	}
 }
 
 int	main(int ac, char **av)
 {
-	t_philo	philo;
 	t_info	info;
-
-	// void *ret;
-	// struct timeval current_time;
-	// pthread_t thread_test = 0;
-	if (ac != 5 || !parsing(av))
+	int	i;
+	
+	memset(&info, 0, sizeof(t_info));
+	if ((ac >= 5 && ac <= 6) && parsing(av))
+		init_philo(ac, av, &info);
+	else
 	{
 		ft_putstr_fd("Error\n", 2);
 		return (EXIT_FAILURE);
 	}
-	print_arguments(av);
-	init_philo(av, &philo);
-	// thread(&philo);
-	// gettimeofday(&current_time, NULL);
-	// printf("seconds : %ld micro second : %ld\n", current_time.tv_sec,
-	// current_time.tv_usec);
-	// if (pthread_create(&thread_test, NULL, thread, "thread 1") != 0)
-	// 	printf("ya haja\n");
-	// pthread_join(thread_test, &ret);
-	// printf("hello wolrd!\n");
+	check_finish(&info);
+	i = 0;
+	while (i < info.nbs_of_philos)
+	{
+		pthread_join(info.philo[i].threads_philo, 0);
+		i++;
+	}
 }
-
-// ./philo -1 23 556 1
-// ./philo 11 23 556 4-
-// ./philo 5 600 200 200 100

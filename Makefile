@@ -6,13 +6,13 @@
 #    By: mparisse <mparisse@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/12/18 10:32:25 by mparisse          #+#    #+#              #
-#    Updated: 2023/04/25 20:25:33 by mparisse         ###   ########.fr        #
+#    Updated: 2023/05/06 04:49:55 by mparisse         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = philo
 
-SRCS = main.c tmp_utils.c
+SRCS = main.c tmp_utils.c utils.c
 
 
 OBJS = ${SRCS:.c=.o}
