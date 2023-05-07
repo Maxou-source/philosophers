@@ -6,7 +6,7 @@
 /*   By: mparisse <mparisse@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/07 03:51:54 by mparisse          #+#    #+#             */
-/*   Updated: 2023/05/07 03:55:04 by mparisse         ###   ########.fr       */
+/*   Updated: 2023/05/07 04:08:21 by mparisse         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,6 +82,7 @@ void	*thread(void *data)
 	if (philo->infos->nbs_of_philos == 1)
 	{
 		prints(philo, "has taken a fork");
+		prints(philo, "has died");
 		return (0);
 	}
 	if (philo->index % 2 == 0)
