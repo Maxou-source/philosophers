@@ -6,7 +6,7 @@
 /*   By: mparisse <mparisse@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/07 03:36:49 by mparisse          #+#    #+#             */
-/*   Updated: 2023/05/07 03:54:34 by mparisse         ###   ########.fr       */
+/*   Updated: 2023/05/10 23:36:44 by mparisse         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,13 +28,13 @@ int	ft_atoi(const char *str)
 		str++;
 	}
 	if (*str == '+' || *str == '-')
-		return (ft_putstr_fd("Error!!\n", 1), exit(0), 0);
+		return (-1);
 	while (ft_isdigit(*str))
 	{
 		res = res * 10 + (*str++ - 48);
 		if (res * negatif > 2147483647 || res * negatif < -2147483648)
 		{
-			return (ft_putstr_fd("Error!!\n", 1), exit(0), 0);
+			return (-1);
 		}
 	}
 	return (res * negatif);

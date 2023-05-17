@@ -6,18 +6,23 @@
 /*   By: mparisse <mparisse@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/07 03:51:54 by mparisse          #+#    #+#             */
-/*   Updated: 2023/05/07 04:08:21 by mparisse         ###   ########.fr       */
+/*   Updated: 2023/05/10 23:31:16 by mparisse         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	taken_fork(t_philo *philo)
+int	taken_fork(t_philo *philo)
 {
 	if (philo->index % 2 == 0)
 	{
 		pthread_mutex_lock(philo->left);
 		prints(philo, "has taken a fork");
+		if (philo->left == philo->right)
+		{
+			pthread_mutex_unlock(philo->left);
+			return (1);
+		}
 		pthread_mutex_lock(philo->right);
 		prints(philo, "has taken a fork");
 	}
@@ -28,6 +33,7 @@ void	taken_fork(t_philo *philo)
 		pthread_mutex_lock(philo->left);
 		prints(philo, "has taken a fork");
 	}
+	return (0);
 }
 
 int	next_step_of_routine(t_philo *philo)
@@ -68,7 +74,7 @@ int	next_step_of_routine(t_philo *philo)
 // -getting at what time the philo is eating in milliseconds
 // -usleep for the time of eating
 // -increases the number of count which the count of meal
-// -if the philo has done all his meal we exit the current thread and 
+// -if the philo has done all his meal we exit the current thread and
 // increase the number of philo
 // who had finished they're meal
 // -we continue the by unlocking the forks the philo was eating
@@ -79,19 +85,14 @@ void	*thread(void *data)
 	t_philo	*philo;
 
 	philo = data;
-	if (philo->infos->nbs_of_philos == 1)
-	{
-		prints(philo, "has taken a fork");
-		prints(philo, "has died");
-		return (0);
-	}
 	if (philo->index % 2 == 0)
 		ft_usleep(philo->infos->time_to_eat * 0.25);
 	while (!is_dead(philo))
 	{
 		if (philo->infos->nbs_of_philos % 2 && philo->count)
 			ft_usleep(philo->infos->time_to_die * 0.2);
-		taken_fork(philo);
+		if (taken_fork(philo))
+			break ;
 		if (next_step_of_routine(philo))
 			return (0);
 	}
@@ -120,7 +121,7 @@ int	death(t_info *info)
 			return (1);
 		}
 	}
-	return (1);
+	return (0);
 }
 
 /*
